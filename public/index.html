@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WBCAP 1st Merit List Serial Checker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+
+  <!-- Main Container -->
+  <div class="container mx-auto px-6 py-10 flex-grow">
+    <h1 class="text-3xl font-bold text-center mb-8 text-indigo-600">WBCAP 1st Merit List Serial Checker</h1>
+
+    <!-- Form -->
+    <form id="checkForm" class="bg-white shadow-md rounded-lg p-6 mb-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label for="start" class="block text-gray-700 font-medium">Start Serial:</label>
+          <input type="text" id="start" name="start" class="w-full border rounded px-3 py-2 mt-1 focus:outline-none focus:ring focus:ring-indigo-300" required>
+        </div>
+        <div>
+          <label for="end" class="block text-gray-700 font-medium">End Serial:</label>
+          <input type="text" id="end" name="end" class="w-full border rounded px-3 py-2 mt-1 focus:outline-none focus:ring focus:ring-indigo-300" required>
+        </div>
+      </div>
+      <button type="submit" class="mt-4 w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition">Check</button>
+    </form>
+
+    <!-- Search -->
+    <div class="flex justify-between items-center mb-4">
+      <input type="text" id="search" placeholder="Search by college name..." class="border rounded px-3 py-2 w-2/3 focus:outline-none focus:ring focus:ring-indigo-300">
+      <button id="downloadCSV" class="ml-4 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition">Download CSV</button>
+    </div>
+
+    <!-- Loader -->
+    <div id="loader" class="flex justify-center items-center my-6 hidden">
+      <div class="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-indigo-600"></div>
+    </div>
+
+    <!-- Results Table -->
+    <div class="overflow-x-auto bg-white rounded-lg shadow-md max-h-96 overflow-y-scroll">
+      <table class="w-full text-sm text-left border-collapse" id="resultsTable">
+        <thead class="bg-indigo-600 text-white">
+          <tr>
+            <th class="px-4 py-2">Serial</th>
+            <th class="px-4 py-2">URL</th>
+            <th class="px-4 py-2">College</th>
+            <th class="px-4 py-2">Course</th>
+            <th class="px-4 py-2">Status</th>
+          </tr>
+        </thead>
+        <tbody id="resultsBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-gray-800 text-white text-center py-4">
+    <p class="text-sm">🚀 This project is made by <span class="font-semibold text-indigo-400">Niraj Gupta</span></p>
+  </footer>
+
+  <!-- Floating Credit Watermark -->
+  <div class="fixed bottom-2 right-2 bg-indigo-600 text-white text-xs px-3 py-1 rounded-full shadow-lg opacity-80">
+    Made by Niraj Gupta
+  </div>
+
+  <!-- Script -->
+<script>
+  document.getElementById("checkForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const start = parseInt(document.getElementById("start").value);
+    const end = parseInt(document.getElementById("end").value);
+    const loader = document.getElementById("loader");
+    const resultsBody = document.getElementById("resultsBody");
+
+    // Clear old results & show loader
+    resultsBody.innerHTML = "";
+    loader.classList.remove("hidden");
+
+    // Open SSE connection
+    const evtSource = new EventSource(`http://localhost:3000/check-sse?start=${start}&end=${end}`);
+
+    evtSource.onmessage = function(event) {
+      if (event.data === "done") {
+        loader.classList.add("hidden"); // hide loader
+        evtSource.close();
+        return;
+      }
+
+      // Append each row as it comes
+      const item = JSON.parse(event.data);
+      const tr = document.createElement("tr");
+      tr.className = "border-b hover:bg-gray-100 transition-opacity duration-500 opacity-0"; // start invisible
+      tr.innerHTML = `
+        <td class="px-4 py-2">${item.serial}</td>
+        <td class="px-4 py-2"><a href="${item.url}" target="_blank" class="text-indigo-600 underline">View</a></td>
+        <td class="px-4 py-2">${item.college}</td>
+        <td class="px-4 py-2">${item.course}</td>
+        <td class="px-4 py-2">${item.status}</td>
+      `;
+      resultsBody.appendChild(tr);
+
+      // Trigger fade-in after appending
+      setTimeout(() => {
+        tr.classList.remove("opacity-0"); // fade in to visible
+      }, 50); // small delay to allow transition
+    };
+
+    evtSource.onerror = function(err) {
+      console.error("SSE Error:", err);
+      loader.classList.add("hidden");
+      evtSource.close();
+      alert("❌ Error fetching results via SSE!");
+    };
+  });
+
+  // Search functionality
+  document.getElementById("search").addEventListener("input", function() {
+    const searchValue = this.value.toLowerCase();
+    const rows = document.querySelectorAll("#resultsBody tr");
+    rows.forEach(row => {
+      const college = row.children[2].textContent.toLowerCase();
+      row.style.display = college.includes(searchValue) ? "" : "none";
+    });
+  });
+
+  // CSV Download
+  document.getElementById("downloadCSV").addEventListener("click", () => {
+    const rows = [["Serial", "URL", "College", "Course", "Status"]];
+    document.querySelectorAll("#resultsBody tr").forEach(tr => {
+      const cols = Array.from(tr.children).map(td => td.textContent);
+      rows.push(cols);
+    });
+    const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
+    const link = document.createElement("a");
+    link.setAttribute("href", encodeURI(csvContent));
+    link.setAttribute("download", "results.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  });
+</script>
+
+
+
+</body>
+</html>
