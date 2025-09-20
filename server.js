@@ -45,7 +45,7 @@ app.get("/check-sse", (req, res) => {
   }, 300);
 });
 
-// Default route: serve index.html
+// Default route: serve index.html for all other requests
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
