@@ -1,12 +1,21 @@
 {
   "name": "wbcap-1st-merit-list",
   "version": "1.0.0",
+  "description": "WBCAP 1st Merit List Serial Checker (made by Niraj Gupta)",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
+  "keywords": [
+    "wbcap",
+    "merit-list",
+    "serial-checker",
+    "niraj-gupta"
+  ],
+  "author": "Niraj Gupta",
+  "license": "MIT",
   "dependencies": {
-    "express": "^4.21.2",
-    "cors": "^2.8.5"
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
   }
 }

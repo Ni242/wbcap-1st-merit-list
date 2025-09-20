@@ -39,6 +39,11 @@
       <span id="progressText">Fetching results...</span>
     </div>
 
+    <!-- Progress Bar -->
+    <div class="w-full bg-gray-200 rounded-full h-4 mb-4">
+      <div id="progressBar" class="bg-indigo-600 h-4 rounded-full" style="width: 0%;"></div>
+    </div>
+
     <!-- Results Table -->
     <div class="overflow-x-auto bg-white rounded-lg shadow-md max-h-96 overflow-y-scroll">
       <table class="w-full text-sm text-left border-collapse" id="resultsTable">
@@ -66,90 +71,93 @@
     Made by Niraj Gupta
   </div>
 
-  <script>
-    document.getElementById("checkForm").addEventListener("submit", (e) => {
-      e.preventDefault();
-      const start = parseInt(document.getElementById("start").value);
-      const end = parseInt(document.getElementById("end").value);
-      const loader = document.getElementById("loader");
-      const progressText = document.getElementById("progressText");
-      const resultsBody = document.getElementById("resultsBody");
+<script>
+document.getElementById("checkForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const start = parseInt(document.getElementById("start").value);
+  const end = parseInt(document.getElementById("end").value);
+  const loader = document.getElementById("loader");
+  const progressText = document.getElementById("progressText");
+  const resultsBody = document.getElementById("resultsBody");
+  const progressBar = document.getElementById("progressBar");
 
-      // Clear old results & show loader
-      resultsBody.innerHTML = "";
-      loader.classList.remove("hidden");
+  // Clear old results & reset loader & progress
+  resultsBody.innerHTML = "";
+  loader.classList.remove("hidden");
+  progressBar.style.width = "0%";
 
-      let total = end - start + 1;
-      let count = 0;
+  let total = end - start + 1;
+  let count = 0;
 
-      // Set Railway backend URL
-      const BASE_URL = "https://wbcap-1st-merit-list-production.up.railway.app/"; // Replace this with your actual Railway URL
+  // Automatically detect backend URL
+  const BASE_URL = window.location.origin;
 
-      const evtSource = new EventSource(`${BASE_URL}/check-sse?start=${start}&end=${end}`);
+  const evtSource = new EventSource(`${BASE_URL}/check-sse?start=${start}&end=${end}`);
 
-      evtSource.onmessage = function(event) {
-        if (event.data === "done") {
-          loader.classList.add("hidden");
-          progressText.textContent = `Completed ${count}/${total}`;
-          evtSource.close();
-          return;
-        }
+  evtSource.onmessage = function(event) {
+    if (event.data === "done") {
+      loader.classList.add("hidden");
+      progressText.textContent = `Completed ${count}/${total}`;
+      progressBar.style.width = "100%";
+      evtSource.close();
+      return;
+    }
 
-        const item = JSON.parse(event.data);
-        const tr = document.createElement("tr");
-        tr.className = "border-b hover:bg-gray-100 transition-opacity duration-500 opacity-0";
-        tr.innerHTML = `
-          <td class="px-4 py-2">${item.serial}</td>
-          <td class="px-4 py-2"><a href="${item.url}" target="_blank" class="text-indigo-600 underline">View</a></td>
-          <td class="px-4 py-2">${item.college}</td>
-          <td class="px-4 py-2">${item.course}</td>
-          <td class="px-4 py-2">${item.status}</td>
-        `;
-        resultsBody.appendChild(tr);
+    const item = JSON.parse(event.data);
+    const tr = document.createElement("tr");
+    tr.className = "border-b hover:bg-gray-100 transition-opacity duration-500 opacity-0";
+    tr.innerHTML = `
+      <td class="px-4 py-2">${item.serial}</td>
+      <td class="px-4 py-2"><a href="${item.url}" target="_blank" class="text-indigo-600 underline">View</a></td>
+      <td class="px-4 py-2">${item.college}</td>
+      <td class="px-4 py-2">${item.course}</td>
+      <td class="px-4 py-2">${item.status}</td>
+    `;
+    resultsBody.appendChild(tr);
 
-        // Fade-in effect
-        setTimeout(() => {
-          tr.classList.remove("opacity-0");
-        }, 50);
+    setTimeout(() => {
+      tr.classList.remove("opacity-0");
+    }, 50);
 
-        // Update progress
-        count++;
-        progressText.textContent = `Fetching results... ${count}/${total}`;
-      };
+    count++;
+    progressText.textContent = `Fetching results... ${count}/${total}`;
+    progressBar.style.width = `${Math.round((count / total) * 100)}%`;
+  };
 
-      evtSource.onerror = function(err) {
-        console.error("SSE Error:", err);
-        loader.classList.add("hidden");
-        evtSource.close();
-        alert("❌ Error fetching results via SSE!");
-      };
-    });
+  evtSource.onerror = function(err) {
+    console.error("SSE Error:", err);
+    loader.classList.add("hidden");
+    evtSource.close();
+    alert("❌ Error fetching results via SSE!");
+  };
+});
 
-    // Search functionality
-    document.getElementById("search").addEventListener("input", function() {
-      const searchValue = this.value.toLowerCase();
-      const rows = document.querySelectorAll("#resultsBody tr");
-      rows.forEach(row => {
-        const college = row.children[2].textContent.toLowerCase();
-        row.style.display = college.includes(searchValue) ? "" : "none";
-      });
-    });
+// Search functionality
+document.getElementById("search").addEventListener("input", function() {
+  const searchValue = this.value.toLowerCase();
+  const rows = document.querySelectorAll("#resultsBody tr");
+  rows.forEach(row => {
+    const college = row.children[2].textContent.toLowerCase();
+    row.style.display = college.includes(searchValue) ? "" : "none";
+  });
+});
 
-    // CSV Download
-    document.getElementById("downloadCSV").addEventListener("click", () => {
-      const rows = [["Serial", "URL", "College", "Course", "Status"]];
-      document.querySelectorAll("#resultsBody tr").forEach(tr => {
-        const cols = Array.from(tr.children).map(td => td.textContent);
-        rows.push(cols);
-      });
-      const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
-      const link = document.createElement("a");
-      link.setAttribute("href", encodeURI(csvContent));
-      link.setAttribute("download", "results.csv");
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    });
-  </script>
+// CSV Download
+document.getElementById("downloadCSV").addEventListener("click", () => {
+  const rows = [["Serial", "URL", "College", "Course", "Status"]];
+  document.querySelectorAll("#resultsBody tr").forEach(tr => {
+    const cols = Array.from(tr.children).map(td => td.textContent);
+    rows.push(cols);
+  });
+  const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
+  const link = document.createElement("a");
+  link.setAttribute("href", encodeURI(csvContent));
+  link.setAttribute("download", "results.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+});
+</script>
+
 </body>
 </html>
