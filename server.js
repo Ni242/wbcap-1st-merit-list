@@ -7,7 +7,7 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 
-// Serve static frontend files
+// Serve static files from 'public' folder
 app.use(express.static(path.join(__dirname, "public")));
 
 // SSE endpoint
@@ -45,7 +45,7 @@ app.get("/check-sse", (req, res) => {
   }, 300);
 });
 
-// Default route: serve index.html for all other requests
+// Serve index.html for all other routes
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
