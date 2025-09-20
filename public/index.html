@@ -82,10 +82,8 @@
       let total = end - start + 1;
       let count = 0;
 
-      // Determine backend URL
-      const BASE_URL = window.location.hostname === "localhost"
-        ? "http://localhost:3000"
-        : "https://wbcap-1st-merit-list.onrender.com";
+      // Set Railway backend URL
+      const BASE_URL = "https://wbcap-1st-merit-list-production.up.railway.app/"; // Replace this with your actual Railway URL
 
       const evtSource = new EventSource(`${BASE_URL}/check-sse?start=${start}&end=${end}`);
 
