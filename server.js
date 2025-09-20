@@ -8,6 +8,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
+
+// Serve static files from 'public' folder
 app.use(express.static(path.join(__dirname, "public")));
 
 // SSE endpoint (real data)
@@ -83,6 +85,7 @@ app.get("/check-sse", async (req, res) => {
 });
 
 // Default route → serve index.html
+// Serve index.html for all other routes
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
