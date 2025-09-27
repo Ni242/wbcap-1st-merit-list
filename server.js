@@ -5,6 +5,8 @@ const axios = require("axios");
 const pdfParse = require("pdf-parse");
 
 const app = express();
+
+// ✅ Railway sets PORT dynamically, fallback to 3000 locally
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
@@ -17,7 +19,9 @@ app.get("/check-sse", async (req, res) => {
   const start = parseInt(req.query.start);
   const end = parseInt(req.query.end);
 
-  if (isNaN(start) || isNaN(end)) return res.status(400).send("Invalid start or end serial");
+  if (isNaN(start) || isNaN(end)) {
+    return res.status(400).send("Invalid start or end serial");
+  }
 
   res.set({
     "Content-Type": "text/event-stream",
@@ -46,11 +50,11 @@ app.get("/check-sse", async (req, res) => {
         const text = data.text;
         const lines = text.split("\n");
 
-        // College
+        // Extract College
         const collegeLine = lines.find(line => /College|Mahavidyalaya/i.test(line));
         const college = collegeLine ? collegeLine.trim() : "College not found";
 
-        // Course
+        // Extract Course
         const courseLine = lines.find(line =>
           /[34]\s*-\s*Year/i.test(line) ||
           /B\.(A|Sc|Com|C\.A\.|B\.B\.M\.)/i.test(line) ||
@@ -84,12 +88,12 @@ app.get("/check-sse", async (req, res) => {
   }, 1000); // 1 second per PDF
 });
 
-// Default route → serve index.html
-// Serve index.html for all other routes
+// Serve index.html for all other routes (SPA support)
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
+// ✅ Use Railway's assigned port
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
 });
